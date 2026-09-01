@@ -1,14 +1,19 @@
-import { copyFileSync, mkdirSync, readdirSync } from 'node:fs';
+import { copyFileSync, mkdirSync } from 'node:fs';
 
 mkdirSync('public', { recursive: true });
 mkdirSync('public/icons', { recursive: true });
 
-copyFileSync('src/index.html', 'public/index.html');
-copyFileSync('src/manifest.webmanifest', 'public/manifest.webmanifest');
+copyFileSync('index.html', 'public/index.html');
+copyFileSync('manifest.webmanifest', 'public/manifest.webmanifest');
 
-let n = 0;
-for (const f of readdirSync('src/icons')) {
-  copyFileSync(`src/icons/${f}`, `public/icons/${f}`);
-  n++;
+const icons = [
+  'apple-touch-icon.png',
+  'favicon-32.png',
+  'icon-192.png',
+  'icon-512.png',
+  'icon-maskable-512.png',
+];
+for (const f of icons) {
+  copyFileSync(f, `public/icons/${f}`);
 }
-console.log(`✓ index.html, manifest.webmanifest, icons(${n}) → public/`);
+console.log(`✓ index.html, manifest.webmanifest, icons(${icons.length}) → public/`);

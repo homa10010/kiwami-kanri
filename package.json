@@ -1,0 +1,28 @@
+{
+  "name": "kiwami-kanri",
+  "version": "1.0.0",
+  "description": "極管理 — プロスピA Aランク収集管理アプリ",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i ./src/input.css -o ./public/app.css --minify",
+    "build:js": "esbuild src/app.jsx --bundle --minify --format=iife --target=es2018 --outfile=public/app.js",
+    "build": "npm run build:css && npm run build:js && npm run build:static",
+    "dev:css": "tailwindcss -i ./src/input.css -o ./public/app.css --watch",
+    "dev:js": "esbuild src/app.jsx --bundle --format=iife --target=es2018 --outfile=public/app.js --watch",
+    "serve": "firebase emulators:start --only hosting",
+    "build:static": "node scripts/copy-static.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "tailwindcss": "^3.4.14"
+  },
+  "dependencies": {
+    "firebase": "^10.14.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "allowScripts": {
+    "esbuild@0.24.2": true,
+    "protobufjs@7.6.6": true
+  }
+}

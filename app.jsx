@@ -57,22 +57,27 @@ const GoogleG = () => (
   </svg>
 );
 
-/* ---- 球団マスタ ---- */
+/* ---- 球団マスタ (並び順はゲーム内の絞り込み画面に合わせる: 上段パ・下段セ) ---- */
 const TEAMS = [
-  { code: 'ソ', name: 'ソフトバンク', bg: '#FCC800', fg: '#0A0A0A' },
-  { code: '日', name: '日本ハム',    bg: '#003831', fg: '#FFFFFF' },
-  { code: 'オ', name: 'オリックス',  bg: '#111827', fg: '#FFFFFF' },
-  { code: '楽', name: '楽天',        bg: '#870010', fg: '#FFFFFF' },
-  { code: '西', name: '西武',        bg: '#1F286F', fg: '#FFFFFF' },
-  { code: 'ロ', name: 'ロッテ',      bg: '#111111', fg: '#FFFFFF' },
-  { code: '阪', name: '阪神',        bg: '#FFE100', fg: '#0A0A0A' },
-  { code: 'De', name: 'DeNA',        bg: '#0055A5', fg: '#FFFFFF' },
-  { code: '巨', name: '巨人',        bg: '#F97709', fg: '#FFFFFF' },
-  { code: '中', name: '中日',        bg: '#002569', fg: '#FFFFFF' },
-  { code: '広', name: '広島',        bg: '#FF2A00', fg: '#FFFFFF' },
-  { code: 'ヤ', name: 'ヤクルト',    bg: '#00873C', fg: '#FFFFFF' },
+  // パ・リーグ
+  { code: 'ソ', name: 'ソフトバンク', league: 'pa', bg: '#FCC800', fg: '#0A0A0A' },
+  { code: '日', name: '日本ハム',    league: 'pa', bg: '#003831', fg: '#FFFFFF' },
+  { code: 'オ', name: 'オリックス',  league: 'pa', bg: '#111827', fg: '#FFFFFF' },
+  { code: '楽', name: '楽天',        league: 'pa', bg: '#870010', fg: '#FFFFFF' },
+  { code: '西', name: '西武',        league: 'pa', bg: '#1F286F', fg: '#FFFFFF' },
+  { code: 'ロ', name: 'ロッテ',      league: 'pa', bg: '#111111', fg: '#FFFFFF' },
+  // セ・リーグ
+  { code: '阪', name: '阪神',        league: 'ce', bg: '#FFE100', fg: '#0A0A0A' },
+  { code: 'De', name: 'DeNA',        league: 'ce', bg: '#0055A5', fg: '#FFFFFF' },
+  { code: '巨', name: '巨人',        league: 'ce', bg: '#F97709', fg: '#FFFFFF' },
+  { code: '中', name: '中日',        league: 'ce', bg: '#002569', fg: '#FFFFFF' },
+  { code: '広', name: '広島',        league: 'ce', bg: '#FF2A00', fg: '#FFFFFF' },
+  { code: 'ヤ', name: 'ヤクルト',    league: 'ce', bg: '#00873C', fg: '#FFFFFF' },
 ];
 const TEAM_ORDER = TEAMS.map(t => t.code);
+const PA_TEAMS = TEAMS.filter(t => t.league === 'pa').map(t => t.code);
+const CE_TEAMS = TEAMS.filter(t => t.league === 'ce').map(t => t.code);
+const sameSet = (a, b) => a.length === b.length && a.every(x => b.includes(x));
 
 const INITIAL_PLAYERS = [
   { team: 'オ', name: '頓宮',       count: 5, hasMotherBody: true },
@@ -125,14 +130,22 @@ const STATUS_DEF = {
   stocked:    { label: '5体以上',  bg: '#E3EFDF', fg: '#2B5A32', border: '#8EBB8A', accent: '#4A7C59' },
   four:       { label: '4体',      bg: '#DBE8F3', fg: '#274870', border: '#7FA1C7', accent: '#2E5A87' },
   collecting: { label: '収集中',   bg: '#EEEBE4', fg: '#4A4740', border: '#C7C3BA', accent: '#6B655A' },
+  kiwamed:    { label: '極化済み', bg: '#E8E3F0', fg: '#45397A', border: '#A99DD0', accent: '#6B5BA8' },
 };
 const getStatus = (p) => {
+  if (p.kiwamed) return 'kiwamed';
   if (p.count >= 5 && p.hasMotherBody) return 'ready';
   if (p.count >= 5) return 'stocked';
   if (p.count === 4) return 'four';
   return 'collecting';
 };
 const getTeam = (code) => TEAMS.find(t => t.code === code) || { code, name: code, bg: '#6b7280', fg: '#fff' };
+
+/* サブ球団（移籍などで複数球団のAランクが存在する場合）。
+   古いデータには subTeams が無いので、常にこの関数を通して配列として扱う。 */
+const getSubTeams = (p) => (Array.isArray(p.subTeams) ? p.subTeams : []).filter(c => c !== p.team);
+/* その選手が指定球団に属するか（メイン or サブ） */
+const belongsTo = (p, code) => p.team === code || getSubTeams(p).includes(code);
 
 /* ---- 共通パーツ ---- */
 const TeamBadge = ({ code, size = 36 }) => {
@@ -155,6 +168,21 @@ const StatusPill = ({ status }) => {
   );
 };
 
+/* リーグ一括選択ボタン（ゲーム内の「すべて / パ・リーグ / セ・リーグ」に合わせた見た目） */
+const LeagueButton = ({ label, active, onClick }) => (
+  <button onClick={onClick}
+          aria-pressed={active}
+          className="h-9 rounded-md text-sm font-bold tracking-tight transition-all active:scale-95"
+          style={
+            active
+              ? { background: 'linear-gradient(#E8832F, #C85A14)', color: '#fff',
+                  border: '1.5px solid #F2C388', boxShadow: '0 1px 2px rgba(0,0,0,.25)' }
+              : { background: '#fff', color: '#6B655A', border: '1.5px solid #D6D1C7' }
+          }>
+    {label}
+  </button>
+);
+
 const SummaryCard = ({ label, value, status, onClick, active }) => {
   const s = STATUS_DEF[status];
   return (
@@ -172,9 +200,14 @@ const SummaryCard = ({ label, value, status, onClick, active }) => {
 };
 
 /* ---- 選手行 ---- */
-const PlayerRow = ({ player, onUpdate, onDelete, onEdit }) => {
+/* contextTeam: この行がどの球団グループの中に表示されているか。
+   メイン球団と違えば「サブ球団として出ている行」なので、その旨を表示する。 */
+const PlayerRow = ({ player, onUpdate, onDelete, onEdit, contextTeam }) => {
   const status = getStatus(player);
   const isReady = status === 'ready';
+  const isKiwamed = status === 'kiwamed';
+  const subTeams = getSubTeams(player);
+  const asSub = !!contextTeam && contextTeam !== player.team;
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmKiwami, setConfirmKiwami] = useState(false);
 
@@ -192,6 +225,23 @@ const PlayerRow = ({ player, onUpdate, onDelete, onEdit }) => {
             {player.name}
           </button>
           <StatusPill status={status} />
+          {/* サブ球団グループに出ている行であることを明示 */}
+          {asSub && (
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-stone-200 text-stone-600 shrink-0">
+              サブ
+            </span>
+          )}
+          {/* サブ球団（移籍で別球団のAランクも持っている場合） */}
+          {subTeams.map(code => {
+            const t = getTeam(code);
+            return (
+              <span key={code} title={`サブ球団: ${t.name}`}
+                    className="text-[10px] font-bold rounded px-1 py-0.5 leading-none shrink-0"
+                    style={{ backgroundColor: t.bg, color: t.fg, opacity: .85 }}>
+                {code}
+              </span>
+            );
+          })}
         </div>
         <div className="flex items-center gap-1 flex-wrap">
           <div className="flex items-center gap-1">
@@ -226,7 +276,7 @@ const PlayerRow = ({ player, onUpdate, onDelete, onEdit }) => {
             {isReady && (
               confirmKiwami ? (
                 <div className="flex items-center gap-1">
-                  <button onClick={() => { onUpdate({ count: player.count - 5 }); setConfirmKiwami(false); }}
+                  <button onClick={() => { onUpdate({ count: player.count - 5, kiwamed: true, kiwamedAt: Date.now() }); setConfirmKiwami(false); }}
                           className="h-8 px-2 rounded bg-amber-500 text-white text-xs font-bold">
                     5体消費
                   </button>
@@ -242,6 +292,13 @@ const PlayerRow = ({ player, onUpdate, onDelete, onEdit }) => {
                   極化
                 </button>
               )
+            )}
+            {isKiwamed && (
+              <button onClick={() => onUpdate({ kiwamed: false, kiwamedAt: null })}
+                      className="h-8 px-2 rounded border border-violet-300 bg-white text-violet-700 text-xs font-bold flex items-center gap-1">
+                <RotateCcw size={12} />
+                戻す
+              </button>
             )}
             <button onClick={onEdit}
                     className="w-7 h-7 flex items-center justify-center text-stone-400 hover:text-stone-700"
@@ -270,16 +327,25 @@ const PlayerRow = ({ player, onUpdate, onDelete, onEdit }) => {
 /* ---- 選手フォーム ---- */
 const PlayerForm = ({ mode, initialData, onSubmit, onClose }) => {
   const [team, setTeam] = useState(initialData?.team ?? 'ソ');
+  const [subTeams, setSubTeams] = useState(initialData ? getSubTeams(initialData) : []);
   const [name, setName] = useState(initialData?.name ?? '');
   const [count, setCount] = useState(initialData?.count ?? 0);
   const [hasMotherBody, setHasMotherBody] = useState(initialData?.hasMotherBody ?? false);
   const [busy, setBusy] = useState(false);
 
+  // メインに選んだ球団はサブから自動的に外す（同じ球団が両方に入らないように）
+  const chooseMain = (code) => {
+    setTeam(code);
+    setSubTeams(prev => prev.filter(c => c !== code));
+  };
+  const toggleSub = (code) =>
+    setSubTeams(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]);
+
   const submit = async () => {
     if (!name.trim() || busy) return;
     setBusy(true);
     try {
-      await onSubmit({ team, name: name.trim(), count, hasMotherBody });
+      await onSubmit({ team, subTeams: subTeams.filter(c => c !== team), name: name.trim(), count, hasMotherBody });
       onClose();
     } catch (e) {
       alert('保存に失敗しました: ' + e.message);
@@ -300,10 +366,13 @@ const PlayerForm = ({ mode, initialData, onSubmit, onClose }) => {
         </div>
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-semibold text-stone-600 mb-2 block">球団</label>
+            <label className="text-xs font-semibold text-stone-600 mb-2 block">
+              メイン球団 <span className="font-normal text-stone-400">（1つ・一覧のグループ分けに使われます）</span>
+            </label>
             <div className="grid grid-cols-6 gap-1.5">
               {TEAMS.map(t => (
-                <button key={t.code} onClick={() => setTeam(t.code)}
+                <button key={t.code} onClick={() => chooseMain(t.code)}
+                        title={t.name}
                         className={`h-10 rounded font-bold text-sm transition-all ${team === t.code ? '' : 'opacity-50'}`}
                         style={{ backgroundColor: t.bg, color: t.fg,
                                  boxShadow: team === t.code ? '0 0 0 2px #1A1D24' : 'none' }}>
@@ -311,6 +380,37 @@ const PlayerForm = ({ mode, initialData, onSubmit, onClose }) => {
                 </button>
               ))}
             </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-stone-600 mb-2 block">
+              サブ球団 <span className="font-normal text-stone-400">（任意・複数可／移籍前後など）</span>
+            </label>
+            <div className="grid grid-cols-6 gap-1.5">
+              {TEAMS.map(t => {
+                const isMain = team === t.code;
+                const on = subTeams.includes(t.code);
+                return (
+                  <button key={t.code} onClick={() => toggleSub(t.code)}
+                          disabled={isMain}
+                          title={isMain ? `${t.name}（メイン球団）` : t.name}
+                          className={`h-10 rounded font-bold text-sm transition-all ${
+                            isMain ? 'cursor-not-allowed' : ''
+                          }`}
+                          style={{
+                            backgroundColor: t.bg, color: t.fg,
+                            opacity: isMain ? 0.12 : (on ? 1 : 0.5),
+                            boxShadow: on ? '0 0 0 2px #1A1D24' : 'none',
+                          }}>
+                    {t.code}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-stone-500 mt-1.5">
+              {subTeams.length > 0
+                ? `選択中: ${subTeams.map(c => getTeam(c).name).join('・')}`
+                : '別球団のAランクも持っている場合に選びます（薄い球団はメインのため選べません）'}
+            </p>
           </div>
           <div>
             <label className="text-xs font-semibold text-stone-600 mb-1.5 block">選手名</label>
@@ -426,7 +526,7 @@ function SetupScreen() {
       <div className="max-w-lg bg-white border border-stone-200 rounded-lg p-6 shadow-sm">
         <h1 className="text-lg font-bold text-stone-900 mb-3">🔧 セットアップが必要です</h1>
         <p className="text-sm text-stone-700 mb-3 leading-relaxed">
-          このアプリを起動するには、Firebase プロジェクトの設定情報を <code className="bg-stone-100 px-1 py-0.5 rounded text-xs">src/firebase-config.js</code> に貼り付けて、<code className="bg-stone-100 px-1 py-0.5 rounded text-xs">npm run build</code> を実行してください。
+          このアプリを起動するには、Firebase プロジェクトの設定情報を <code className="bg-stone-100 px-1 py-0.5 rounded text-xs">firebase-config.js</code> に貼り付けて、<code className="bg-stone-100 px-1 py-0.5 rounded text-xs">npm run build</code> を実行してください。
         </p>
         <p className="text-sm text-stone-700 mb-4 leading-relaxed">
           詳しい手順は <code className="bg-stone-100 px-1 py-0.5 rounded text-xs">README.md</code> を参照してください。
@@ -452,7 +552,8 @@ function TrackerApp({ user }) {
   const [seeding, setSeeding] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [teamFilter, setTeamFilter] = useState('all');
+  const [teamFilter, setTeamFilter] = useState([]); // 空配列 = 全球団
+  const [showKiwamed, setShowKiwamed] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [collapsedTeams, setCollapsedTeams] = useState({});
@@ -520,9 +621,11 @@ function TrackerApp({ user }) {
     const stamp = Date.now();
     newPlayers.forEach((p, i) => ops.push(b => b.set(doc(playersRef, `${p._idPrefix || 'p'}_${stamp}_${i}`), {
       team: p.team ?? 'ソ',
+      subTeams: Array.isArray(p.subTeams) ? p.subTeams.filter(c => c !== p.team) : [],
       name: String(p.name ?? '').trim() || '(無名)',
       count: Number.isFinite(p.count) ? p.count : 0,
       hasMotherBody: !!p.hasMotherBody,
+      kiwamed: !!p.kiwamed,
       updatedAt: stamp,
     })));
     await commitChunked(ops);
@@ -565,12 +668,15 @@ function TrackerApp({ user }) {
   const filtered = useMemo(() => {
     if (!players) return [];
     return players.filter(p => {
+      // 極化済みは通常の一覧から外す（showKiwamed のときだけ極化済みを表示）
+      if (showKiwamed !== !!p.kiwamed) return false;
       if (search && !p.name.includes(search)) return false;
-      if (teamFilter !== 'all' && p.team !== teamFilter) return false;
+      // メイン球団だけでなくサブ球団でもヒットさせる
+      if (teamFilter.length > 0 && !teamFilter.some(c => belongsTo(p, c))) return false;
       if (statusFilter !== 'all' && getStatus(p) !== statusFilter) return false;
       return true;
     });
-  }, [players, search, teamFilter, statusFilter]);
+  }, [players, search, teamFilter, statusFilter, showKiwamed]);
 
   const showGrouped = !search && statusFilter === 'all';
 
@@ -578,17 +684,23 @@ function TrackerApp({ user }) {
     if (!showGrouped) return null;
     const groups = {};
     filtered.forEach(p => {
-      if (!groups[p.team]) groups[p.team] = [];
-      groups[p.team].push(p);
+      // メイン球団とサブ球団、その選手が属する全グループに表示する
+      const codes = [p.team, ...getSubTeams(p)];
+      // 球団で絞り込み中は、選択した球団のグループにだけ出す
+      const target = teamFilter.length > 0 ? codes.filter(c => teamFilter.includes(c)) : codes;
+      target.forEach(c => {
+        if (!groups[c]) groups[c] = [];
+        groups[c].push(p);
+      });
     });
-    const order = { ready: 0, stocked: 1, four: 2, collecting: 3 };
+    const order = { ready: 0, stocked: 1, four: 2, collecting: 3, kiwamed: 4 };
     Object.values(groups).forEach(g => g.sort((a, b) => {
       const d = order[getStatus(a)] - order[getStatus(b)];
       if (d !== 0) return d;
       return b.count - a.count;
     }));
     return groups;
-  }, [filtered, showGrouped]);
+  }, [filtered, showGrouped, teamFilter]);
 
   const flatList = useMemo(() => {
     if (showGrouped) return null;
@@ -600,14 +712,21 @@ function TrackerApp({ user }) {
   }, [filtered, showGrouped]);
 
   const summary = useMemo(() => {
-    const s = { total: 0, ready: 0, stocked: 0, four: 0, collecting: 0 };
+    const s = { total: 0, ready: 0, stocked: 0, four: 0, collecting: 0, kiwamed: 0 };
     if (!players) return s;
-    s.total = players.length;
     players.forEach(p => { s[getStatus(p)]++; });
+    s.total = players.length - s.kiwamed; // 極化済みを除いた育成中の選手数
     return s;
   }, [players]);
 
-  const isFiltered = statusFilter !== 'all' || teamFilter !== 'all' || !!search;
+  const isFiltered = statusFilter !== 'all' || teamFilter.length > 0 || !!search;
+  const clearFilters = () => { setSearch(''); setStatusFilter('all'); setTeamFilter([]); };
+
+  // 球団チップの操作
+  const toggleTeam = (code) =>
+    setTeamFilter(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]);
+  const selectLeague = (codes) =>
+    setTeamFilter(prev => sameSet(prev, codes) ? [] : [...codes]);
 
   if (players === null) {
     return (
@@ -648,47 +767,76 @@ function TrackerApp({ user }) {
             <SummaryCard label="収集中"   value={summary.collecting} status="collecting" active={statusFilter === 'collecting'} onClick={() => setStatusFilter(statusFilter === 'collecting' ? 'all' : 'collecting')} />
           </div>
 
-          <div className="mt-3 flex gap-2">
-            <div className="flex-1 relative">
-              <SearchIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
-              <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-                     placeholder="選手名で検索"
-                     className="w-full h-10 pl-9 pr-9 border border-stone-300 rounded bg-white text-sm focus:outline-none focus:border-stone-900" />
-              {search && (
-                <button onClick={() => setSearch('')}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
-                        aria-label="検索をクリア">
-                  <XIcon size={16} />
-                </button>
-              )}
+          {/* 球団の絞り込み（常時表示・検索欄の上） */}
+          <div className="mt-2.5">
+            <div className="grid grid-cols-3 gap-1.5 mb-1.5">
+              <LeagueButton label="すべて"     active={teamFilter.length === 0}       onClick={() => setTeamFilter([])} />
+              <LeagueButton label="パ・リーグ" active={sameSet(teamFilter, PA_TEAMS)} onClick={() => selectLeague(PA_TEAMS)} />
+              <LeagueButton label="セ・リーグ" active={sameSet(teamFilter, CE_TEAMS)} onClick={() => selectLeague(CE_TEAMS)} />
             </div>
-            <select value={teamFilter} onChange={e => setTeamFilter(e.target.value)}
-                    className="h-10 px-2 border border-stone-300 rounded bg-white text-sm font-semibold text-stone-700">
-              <option value="all">全球団</option>
-              {TEAMS.map(t => (
-                <option key={t.code} value={t.code}>{t.code} {t.name}</option>
-              ))}
-            </select>
+            {/* 12球団（上段=パ・下段=セ）複数選択可 */}
+            <div className="grid grid-cols-6 gap-1">
+              {TEAMS.map(t => {
+                const on = teamFilter.includes(t.code);
+                return (
+                  <button key={t.code} onClick={() => toggleTeam(t.code)}
+                          title={t.name}
+                          aria-pressed={on}
+                          className="h-9 rounded font-bold text-[13px] flex items-center justify-center transition-all active:scale-95"
+                          style={{
+                            backgroundColor: t.bg,
+                            color: t.fg,
+                            opacity: teamFilter.length === 0 || on ? 1 : 0.28,
+                            boxShadow: on ? '0 0 0 2.5px #1A1D24' : 'inset 0 0 0 1px rgba(0,0,0,.15)',
+                          }}>
+                    {t.code}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {isFiltered && (
-            <div className="mt-2.5 flex items-center justify-between gap-2">
-              <span className="text-xs text-stone-500">
-                絞り込み中 · <span className="font-mono font-bold tabular-nums text-stone-800">{filtered.length}</span> 件
-              </span>
-              <button onClick={() => { setSearch(''); setStatusFilter('all'); setTeamFilter('all'); }}
+          <div className="mt-2 relative">
+            <SearchIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+                   placeholder="選手名で検索"
+                   className="w-full h-10 pl-9 pr-9 border border-stone-300 rounded bg-white text-sm focus:outline-none focus:border-stone-900" />
+            {search && (
+              <button onClick={() => setSearch('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+                      aria-label="検索をクリア">
+                <XIcon size={16} />
+              </button>
+            )}
+          </div>
+
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <button onClick={() => { setShowKiwamed(v => !v); setStatusFilter('all'); }}
+                    className={`h-8 px-2.5 rounded-full border text-xs font-bold flex items-center gap-1 transition-colors ${
+                      showKiwamed
+                        ? 'bg-violet-600 border-violet-600 text-white'
+                        : 'bg-white border-stone-300 text-stone-600'
+                    }`}>
+              <Sparkles size={13} />
+              極化済み
+              <span className="font-mono tabular-nums">{summary.kiwamed}</span>
+            </button>
+            {isFiltered && (
+              <button onClick={clearFilters}
                       className="h-8 px-3 rounded-full bg-stone-800 hover:bg-stone-900 text-white text-xs font-bold flex items-center gap-1 active:scale-95 transition-transform">
                 <XIcon size={14} strokeWidth={2.5} />
                 絞り込みをクリア
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </header>
 
       <main className="max-w-3xl mx-auto" style={{ paddingBottom: 'max(5rem, env(safe-area-inset-bottom))' }}>
         {filtered.length === 0 && (
-          <div className="text-center py-16 text-stone-400 text-sm">該当する選手がいません</div>
+          <div className="text-center py-16 text-stone-400 text-sm">
+            {showKiwamed && !isFiltered ? '極化済みの選手はまだいません' : '該当する選手がいません'}
+          </div>
         )}
 
         {showGrouped ? (
@@ -719,7 +867,8 @@ function TrackerApp({ user }) {
                 {!isCollapsed && (
                   <div className="divide-y divide-stone-100">
                     {list.map(p => (
-                      <PlayerRow key={p.id} player={p}
+                      // 同じ選手が複数グループに出るので、key は「球団+選手ID」で一意にする
+                      <PlayerRow key={`${code}-${p.id}`} player={p} contextTeam={code}
                                  onUpdate={u => updatePlayer(p.id, u)}
                                  onDelete={() => deletePlayer(p.id)}
                                  onEdit={() => setEditTarget(p)} />

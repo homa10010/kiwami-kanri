@@ -1,0 +1,21 @@
+# ビルド生成物（npm run build で作られる。GitHub Actions が毎回作り直すのでコミット不要）
+public/
+node_modules/
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+firestore-debug.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# エディタ
+.vscode/
+.idea/
+*.swp
+
+# 秘密鍵（サービスアカウント鍵は絶対にコミットしない）
+*-service-account*.json

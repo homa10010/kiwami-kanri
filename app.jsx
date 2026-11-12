@@ -331,6 +331,8 @@ const PlayerForm = ({ mode, initialData, onSubmit, onClose }) => {
   const [name, setName] = useState(initialData?.name ?? '');
   const [count, setCount] = useState(initialData?.count ?? 0);
   const [hasMotherBody, setHasMotherBody] = useState(initialData?.hasMotherBody ?? false);
+  // 極化済みかどうか。すでに極にしてある選手を後から記録する場合もここで切り替える
+  const [kiwamed, setKiwamed] = useState(!!initialData?.kiwamed);
   const [busy, setBusy] = useState(false);
 
   // メインに選んだ球団はサブから自動的に外す（同じ球団が両方に入らないように）
@@ -345,7 +347,12 @@ const PlayerForm = ({ mode, initialData, onSubmit, onClose }) => {
     if (!name.trim() || busy) return;
     setBusy(true);
     try {
-      await onSubmit({ team, subTeams: subTeams.filter(c => c !== team), name: name.trim(), count, hasMotherBody });
+      await onSubmit({
+        team, subTeams: subTeams.filter(c => c !== team), name: name.trim(), count, hasMotherBody,
+        kiwamed,
+        // 極化済みを解除したら達成日時も消す
+        kiwamedAt: kiwamed ? (initialData?.kiwamedAt ?? Date.now()) : null,
+      });
       onClose();
     } catch (e) {
       alert('保存に失敗しました: ' + e.message);
@@ -442,6 +449,22 @@ const PlayerForm = ({ mode, initialData, onSubmit, onClose }) => {
             <Star size={16} fill={hasMotherBody ? '#B45309' : 'none'} strokeWidth={2.5} />
             S母体を所持している
           </button>
+          <div>
+            <button onClick={() => setKiwamed(!kiwamed)}
+                    className={`w-full h-11 rounded border text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${
+                      kiwamed
+                        ? 'bg-violet-100 border-violet-400 text-violet-800'
+                        : 'bg-white border-stone-300 text-stone-500'
+                    }`}>
+              <Sparkles size={16} strokeWidth={2.5} />
+              極化済み
+            </button>
+            <p className="text-[11px] text-stone-500 mt-1.5">
+              {kiwamed
+                ? '通常の一覧には表示されず、「極化済み」からいつでも確認できます'
+                : 'すでに極にしてある選手はこれをONにします'}
+            </p>
+          </div>
           <button onClick={submit} disabled={!name.trim() || busy}
                   className="w-full h-12 bg-stone-900 hover:bg-stone-800 text-white rounded-lg font-bold disabled:opacity-40">
             {busy ? '保存中…' : (mode === 'edit' ? '変更を保存' : '追加する')}

@@ -328,6 +328,8 @@ const PlayerRow = ({ player, onUpdate, onDelete, onEdit, contextTeam }) => {
 const PlayerForm = ({ mode, initialData, onSubmit, onClose }) => {
   const [team, setTeam] = useState(initialData?.team ?? 'ソ');
   const [subTeams, setSubTeams] = useState(initialData ? getSubTeams(initialData) : []);
+  // 新規追加では邪魔になるので閉じておく。すでにサブ球団がある選手の編集時だけ開く
+  const [subOpen, setSubOpen] = useState(initialData ? getSubTeams(initialData).length > 0 : false);
   const [name, setName] = useState(initialData?.name ?? '');
   const [count, setCount] = useState(initialData?.count ?? 0);
   const [hasMotherBody, setHasMotherBody] = useState(initialData?.hasMotherBody ?? false);
@@ -388,36 +390,58 @@ const PlayerForm = ({ mode, initialData, onSubmit, onClose }) => {
               ))}
             </div>
           </div>
-          <div>
-            <label className="text-xs font-semibold text-stone-600 mb-2 block">
-              サブ球団 <span className="font-normal text-stone-400">（任意・複数可／移籍前後など）</span>
-            </label>
-            <div className="grid grid-cols-6 gap-1.5">
-              {TEAMS.map(t => {
-                const isMain = team === t.code;
-                const on = subTeams.includes(t.code);
-                return (
-                  <button key={t.code} onClick={() => toggleSub(t.code)}
-                          disabled={isMain}
-                          title={isMain ? `${t.name}（メイン球団）` : t.name}
-                          className={`h-10 rounded font-bold text-sm transition-all ${
-                            isMain ? 'cursor-not-allowed' : ''
-                          }`}
-                          style={{
-                            backgroundColor: t.bg, color: t.fg,
-                            opacity: isMain ? 0.12 : (on ? 1 : 0.5),
-                            boxShadow: on ? '0 0 0 2px #1A1D24' : 'none',
-                          }}>
-                    {t.code}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-[11px] text-stone-500 mt-1.5">
-              {subTeams.length > 0
-                ? `選択中: ${subTeams.map(c => getTeam(c).name).join('・')}`
-                : '別球団のAランクも持っている場合に選びます（薄い球団はメインのため選べません）'}
-            </p>
+          {/* サブ球団は使う場面が限られるので折りたたむ。
+              閉じていても選択中の球団は見出しに出すので、開かなくても状態が分かる。 */}
+          <div className="rounded border border-stone-200">
+            <button onClick={() => setSubOpen(v => !v)}
+                    className="w-full px-3 h-11 flex items-center gap-2 text-left">
+              <span className="text-xs font-semibold text-stone-600 shrink-0">サブ球団</span>
+              <div className="flex-1 flex items-center gap-1 flex-wrap min-w-0">
+                {subTeams.length === 0
+                  ? <span className="text-[11px] text-stone-400">なし（移籍選手などで使います）</span>
+                  : subTeams.map(c => {
+                      const t = getTeam(c);
+                      return (
+                        <span key={c} className="text-[10px] font-bold rounded px-1 py-0.5 leading-none"
+                              style={{ backgroundColor: t.bg, color: t.fg }}>
+                          {c}
+                        </span>
+                      );
+                    })}
+              </div>
+              {subOpen ? <ChevronUp size={16} className="text-stone-400 shrink-0" />
+                       : <ChevronDown size={16} className="text-stone-400 shrink-0" />}
+            </button>
+            {subOpen && (
+              <div className="px-3 pb-3 pt-1 border-t border-stone-100">
+                <div className="grid grid-cols-6 gap-1.5">
+                  {TEAMS.map(t => {
+                    const isMain = team === t.code;
+                    const on = subTeams.includes(t.code);
+                    return (
+                      <button key={t.code} onClick={() => toggleSub(t.code)}
+                              disabled={isMain}
+                              title={isMain ? `${t.name}（メイン球団）` : t.name}
+                              className={`h-10 rounded font-bold text-sm transition-all ${
+                                isMain ? 'cursor-not-allowed' : ''
+                              }`}
+                              style={{
+                                backgroundColor: t.bg, color: t.fg,
+                                opacity: isMain ? 0.12 : (on ? 1 : 0.5),
+                                boxShadow: on ? '0 0 0 2px #1A1D24' : 'none',
+                              }}>
+                        {t.code}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-stone-500 mt-1.5">
+                  {subTeams.length > 0
+                    ? `選択中: ${subTeams.map(c => getTeam(c).name).join('・')}`
+                    : '別球団のAランクも持っている場合に選びます（薄い球団はメインのため選べません）'}
+                </p>
+              </div>
+            )}
           </div>
           <div>
             <label className="text-xs font-semibold text-stone-600 mb-1.5 block">選手名</label>

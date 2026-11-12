@@ -767,12 +767,9 @@ function TrackerApp({ user }) {
   }, [filtered, showGrouped]);
 
   const summary = useMemo(() => {
-    const s = { total: 0, ready: 0, stocked: 0, four: 0, collecting: 0, kiwamed: 0, withSub: 0 };
+    const s = { total: 0, ready: 0, stocked: 0, four: 0, collecting: 0, kiwamed: 0 };
     if (!players) return s;
-    players.forEach(p => {
-      s[getStatus(p)]++;
-      if (getSubTeams(p).length > 0) s.withSub++; // サブ球団を持つ選手の数
-    });
+    players.forEach(p => { s[getStatus(p)]++; });
     s.total = players.length - s.kiwamed; // 極化済みを除いた育成中の選手数
     return s;
   }, [players]);
@@ -868,9 +865,10 @@ function TrackerApp({ user }) {
             )}
           </div>
 
-          <div className="mt-2 flex items-center justify-between gap-2">
+          <div className="mt-2 flex items-center gap-2">
+            {/* 表示切り替えのトグルは隣り合わせにまとめる */}
             <button onClick={() => { setShowKiwamed(v => !v); setStatusFilter('all'); }}
-                    className={`h-8 px-2.5 rounded-full border text-xs font-bold flex items-center gap-1 transition-colors ${
+                    className={`h-8 px-2.5 rounded-full border text-xs font-bold flex items-center gap-1 shrink-0 transition-colors ${
                       showKiwamed
                         ? 'bg-violet-600 border-violet-600 text-white'
                         : 'bg-white border-stone-300 text-stone-600'
@@ -880,17 +878,17 @@ function TrackerApp({ user }) {
               <span className="font-mono tabular-nums">{summary.kiwamed}</span>
             </button>
             <button onClick={() => setShowSubTeams(v => !v)}
-                    className={`h-8 px-2.5 rounded-full border text-xs font-bold flex items-center gap-1 transition-colors ${
+                    className={`h-8 px-2.5 rounded-full border text-xs font-bold flex items-center gap-1 shrink-0 transition-colors ${
                       showSubTeams
                         ? 'bg-stone-800 border-stone-800 text-white'
                         : 'bg-white border-stone-300 text-stone-600'
                     }`}>
               サブ球団も表示
-              <span className="font-mono tabular-nums">{summary.withSub}</span>
             </button>
+            {/* クリアだけ ml-auto で右端へ寄せる */}
             {isFiltered && (
               <button onClick={clearFilters}
-                      className="h-8 px-3 rounded-full bg-stone-800 hover:bg-stone-900 text-white text-xs font-bold flex items-center gap-1 active:scale-95 transition-transform">
+                      className="ml-auto h-8 px-3 rounded-full bg-stone-800 hover:bg-stone-900 text-white text-xs font-bold flex items-center gap-1 shrink-0 active:scale-95 transition-transform">
                 <XIcon size={14} strokeWidth={2.5} />
                 絞り込みをクリア
               </button>

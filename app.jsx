@@ -601,6 +601,8 @@ function TrackerApp({ user }) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [teamFilter, setTeamFilter] = useState([]); // 空配列 = 全球団
   const [showKiwamed, setShowKiwamed] = useState(false);
+  // OFF（通常）: メイン球団のグループにだけ表示。ON: サブ球団のグループにも表示する
+  const [showSubTeams, setShowSubTeams] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [collapsedTeams, setCollapsedTeams] = useState({});
@@ -718,12 +720,18 @@ function TrackerApp({ user }) {
       // 極化済みは通常の一覧から外す（showKiwamed のときだけ極化済みを表示）
       if (showKiwamed !== !!p.kiwamed) return false;
       if (search && !p.name.includes(search)) return false;
-      // メイン球団だけでなくサブ球団でもヒットさせる
-      if (teamFilter.length > 0 && !teamFilter.some(c => belongsTo(p, c))) return false;
+      // サブ球団も表示がOFFなら、球団の絞り込みもメイン球団だけで判定する
+      // （ここだけサブを含めると、グループが作られず選手が消えてしまう）
+      if (teamFilter.length > 0) {
+        const hit = showSubTeams
+          ? teamFilter.some(c => belongsTo(p, c))
+          : teamFilter.includes(p.team);
+        if (!hit) return false;
+      }
       if (statusFilter !== 'all' && getStatus(p) !== statusFilter) return false;
       return true;
     });
-  }, [players, search, teamFilter, statusFilter, showKiwamed]);
+  }, [players, search, teamFilter, statusFilter, showKiwamed, showSubTeams]);
 
   const showGrouped = !search && statusFilter === 'all';
 
@@ -731,8 +739,8 @@ function TrackerApp({ user }) {
     if (!showGrouped) return null;
     const groups = {};
     filtered.forEach(p => {
-      // メイン球団とサブ球団、その選手が属する全グループに表示する
-      const codes = [p.team, ...getSubTeams(p)];
+      // 通常はメイン球団のみ。トグルONならサブ球団のグループにも表示する
+      const codes = showSubTeams ? [p.team, ...getSubTeams(p)] : [p.team];
       // 球団で絞り込み中は、選択した球団のグループにだけ出す
       const target = teamFilter.length > 0 ? codes.filter(c => teamFilter.includes(c)) : codes;
       target.forEach(c => {
@@ -747,7 +755,7 @@ function TrackerApp({ user }) {
       return b.count - a.count;
     }));
     return groups;
-  }, [filtered, showGrouped, teamFilter]);
+  }, [filtered, showGrouped, teamFilter, showSubTeams]);
 
   const flatList = useMemo(() => {
     if (showGrouped) return null;
@@ -759,9 +767,12 @@ function TrackerApp({ user }) {
   }, [filtered, showGrouped]);
 
   const summary = useMemo(() => {
-    const s = { total: 0, ready: 0, stocked: 0, four: 0, collecting: 0, kiwamed: 0 };
+    const s = { total: 0, ready: 0, stocked: 0, four: 0, collecting: 0, kiwamed: 0, withSub: 0 };
     if (!players) return s;
-    players.forEach(p => { s[getStatus(p)]++; });
+    players.forEach(p => {
+      s[getStatus(p)]++;
+      if (getSubTeams(p).length > 0) s.withSub++; // サブ球団を持つ選手の数
+    });
     s.total = players.length - s.kiwamed; // 極化済みを除いた育成中の選手数
     return s;
   }, [players]);
@@ -867,6 +878,15 @@ function TrackerApp({ user }) {
               <Sparkles size={13} />
               極化済み
               <span className="font-mono tabular-nums">{summary.kiwamed}</span>
+            </button>
+            <button onClick={() => setShowSubTeams(v => !v)}
+                    className={`h-8 px-2.5 rounded-full border text-xs font-bold flex items-center gap-1 transition-colors ${
+                      showSubTeams
+                        ? 'bg-stone-800 border-stone-800 text-white'
+                        : 'bg-white border-stone-300 text-stone-600'
+                    }`}>
+              サブ球団も表示
+              <span className="font-mono tabular-nums">{summary.withSub}</span>
             </button>
             {isFiltered && (
               <button onClick={clearFilters}

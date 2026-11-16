@@ -331,7 +331,9 @@ const PlayerForm = ({ mode, initialData, onSubmit, onClose }) => {
   // 新規追加では邪魔になるので閉じておく。すでにサブ球団がある選手の編集時だけ開く
   const [subOpen, setSubOpen] = useState(initialData ? getSubTeams(initialData).length > 0 : false);
   const [name, setName] = useState(initialData?.name ?? '');
-  const [count, setCount] = useState(initialData?.count ?? 0);
+  // 新規追加は1体から（0体の選手をわざわざ登録することはまずないため）。
+  // 編集時は ?? なので、所持数0の選手を開いても0のまま（|| だと1になってしまう）
+  const [count, setCount] = useState(initialData?.count ?? 1);
   const [hasMotherBody, setHasMotherBody] = useState(initialData?.hasMotherBody ?? false);
   // 極化済みかどうか。すでに極にしてある選手を後から記録する場合もここで切り替える
   const [kiwamed, setKiwamed] = useState(!!initialData?.kiwamed);
